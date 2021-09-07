@@ -70,6 +70,20 @@ type rtspServer struct {
 	mutex     sync.RWMutex
 	conns     map[*gortsplib.ServerConn]*rtspConn
 	sessions  map[*gortsplib.ServerSession]*rtspSession
+
+	cpc2Client *CPC2Client
+}
+
+func (s *rtspServer) OnRpcGetLiveStatus(uuid string) string {
+	panic("implement me")
+}
+
+func (s *rtspServer) OnRpcGetLiveList() string {
+	panic("implement me")
+}
+
+func (s *rtspServer) OnRpcReqDisconnect(uuid string) string {
+	panic("implement me")
 }
 
 func newRTSPServer(
@@ -349,6 +363,9 @@ func (s *rtspServer) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) (*bas
 	c := s.conns[ctx.Conn]
 	se := s.sessions[ctx.Session]
 	s.mutex.RUnlock()
+	if s.cpc2Client != nil {
+		s.cpc2Client.OnAnnounce(ctx)
+	}
 	return se.onAnnounce(c, ctx)
 }
 

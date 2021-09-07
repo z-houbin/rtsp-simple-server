@@ -364,6 +364,26 @@ func (p *Core) createResources(initial bool) error {
 		}
 	}
 
+	if p.cameraWsServer == nil {
+		//TODO 本地端口动态配置
+		p.cameraWsServer = RunCameraWebSocketServer(8290, &FFHandler{
+			connect: make(map[string]*ffProcessor),
+		})
+	}
+
+	if p.cpc2WsClient == nil {
+		cpcClient := &CPC2Client{
+			api: p.rtspServer,
+		}
+		//TODO 本地端口动态配置
+		p.cpc2WsClient = newWsClient("ws://127.0.0.1:8289/rtsp-server/0000000000", cpcClient)
+		cpcClient.ws = p.cpc2WsClient
+		p.rtspServer.cpc2Client = cpcClient
+		if err != nil {
+			return err
+		}
+	}
+
 	if initial && p.confFound {
 		p.confWatcher, err = confwatcher.New(p.confPath)
 		if err != nil {

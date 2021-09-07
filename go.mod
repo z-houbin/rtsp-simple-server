@@ -15,6 +15,7 @@ require (
 	github.com/pion/rtp v1.7.9
 	github.com/stretchr/testify v1.7.1
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/net v0.0.0-20210610132358-84b48f89b13b
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.4.0
 )
