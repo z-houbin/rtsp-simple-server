@@ -7,8 +7,9 @@ import (
 )
 
 type CPC2Client struct {
-	api CpcApi
-	ws  *WsClient
+	api      CpcApi
+	ws       *WsClient
+	rtspHost string
 }
 
 type respJSON struct {
@@ -22,11 +23,10 @@ func (c CPC2Client) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) {
 
 	if c.ws != nil {
 		url := ctx.Req.URL
-		//TODO 返回地址待优化
 		str, err := json.Marshal(&respJSON{
 			Action: "ACTION_LIVE_READY",
 			Uuid:   ctx.Path,
-			Data:   "rtsp://" + url.Host + url.Path,
+			Data:   "rtsp://" + c.rtspHost + url.Path,
 		})
 		if err != nil {
 			fmt.Printf("")
@@ -35,7 +35,7 @@ func (c CPC2Client) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) {
 	}
 }
 
-func (c CPC2Client) OnConnect(uuid string) {
+func (c CPC2Client) OnConnect(uuid string, rtspHost string) {
 	fmt.Printf("cpc2.OnConnect %s\n", uuid)
 }
 

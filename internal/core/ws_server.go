@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/aler9/rtsp-simple-server/internal/conf"
 	"golang.org/x/net/websocket"
 	"log"
 	"net/http"
@@ -13,11 +14,12 @@ type WsServer struct {
 	port     int
 	listener WsStatusListener
 	client   map[string]*websocket.Conn
+	conf     conf.Conf
 }
 
 type WsStatusListener interface {
 	//OnConnect 客户端连接
-	OnConnect(uuid string)
+	OnConnect(uuid string, rtspHost string)
 	//OnMessage 客户端消息
 	OnMessage(uuid string, data []byte)
 	//OnDisconnect 客户端断开
@@ -30,7 +32,7 @@ func (s WsServer) run() {
 		// get uuid params
 		uuid := strings.ReplaceAll(ws.Request().URL.String(), "/", "")
 
-		s.listener.OnConnect(uuid)
+		s.listener.OnConnect(uuid, s.conf.RtspPushAddress)
 		// loop receive
 		for {
 			var message []byte
@@ -58,8 +60,12 @@ func (s WsServer) send(uuid string, data []byte) {
 	}
 }
 
-func RunCameraWebSocketServer(port int, listener WsStatusListener) *WsServer {
-	server := &WsServer{port: port, listener: listener, client: map[string]*websocket.Conn{}}
+func RunCameraWebSocketServer(config conf.Conf, listener WsStatusListener) *WsServer {
+	server := &WsServer{
+		port:     config.CameraWebSocketPort,
+		conf:     config,
+		listener: listener,
+		client:   map[string]*websocket.Conn{}}
 	go server.run()
 	return server
 }

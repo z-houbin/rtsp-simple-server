@@ -14,12 +14,12 @@ type FFHandler struct {
 }
 
 //OnConnect imp WsStatusListener
-func (h *FFHandler) OnConnect(uuid string) {
+func (h *FFHandler) OnConnect(uuid string, rtspHost string) {
 	fmt.Printf("ffhandler OnConnect:%s\n", uuid)
 	processor := &ffProcessor{
 		uuid: uuid,
 	}
-	processor.init(uuid)
+	processor.init(uuid, rtspHost)
 	h.connect[uuid] = processor
 }
 
@@ -48,51 +48,45 @@ type ffProcessor struct {
 	initSuccess bool
 }
 
-func (p *ffProcessor) init(uuid string) {
+func (p *ffProcessor) init(uuid string, rtspHost string) {
 	sysType := runtime.GOOS
-	var rtspURL string
-	//TODO 运行方式和地址待优化,cpc2_client OnAnnounce 地址从这个地址取的
-	//TODO 异常处理待优化,可能导致整个rtsp停止运行
+	var rtspURL = "rtsp://" + rtspHost + "/" + uuid
 	var cmd *exec.Cmd
 	if sysType == "windows" {
 		// windows
-		rtspURL = "rtsp://127.0.0.1:8554/" + uuid
+		// 全局参数 - 输入文件参数 - 输入文件 - 输出文件参数 - 输出文件
 		cmd = exec.Command("cmd", "/c",
-			"ffmpeg", "-y",
-			"-i", "-",
-			"-c:v", "libx264",
-			"-preset:v", "ultrafast",
-			"-tune", "zerolatency",
-			"-c:a", "aac",
-			"-ar", "44100",
-			"-b:a", "300k",
+			"ffmpeg",
+			"-i", "-", // 管道输入
+			"-c:v", "libx265",
+			"-c:a", "copy", //直接复制不重新编码
+			"-preset:v", "medium", //编码速度,影响视频质量
+			"-tune", "zerolatency", //视频类型,表示零延迟
+			"-b:v", "1500k", //码率比特率,每秒处理的字节数,默认200kb
 			"-async", "1",
-			"-filter:v", "fps=20",
-			"-use_wallclock_as_timestamps", "1",
-			"-bufsize", "10240",
-			"-g", "12",
-			"-rtsp_transport", "tcp",
-			"-f", "rtsp",
+			"-r", "20", //帧率,视频中每秒图片帧数,默认25,低于输入可能会丢帧
+			"-use_wallclock_as_timestamps", "1", //用系统时间计时当成时间轴
+			"-bufsize", "10240", //设置码率控制缓冲区大小
+			"-g", "12", //图片组大小
+			"-rtsp_transport", "tcp", //rtsp传输协议
+			"-f", "rtsp", //文件格式
 			rtspURL)
 	} else {
-		rtspURL = "rtsp://123.60.28.115:8554/" + uuid
-		cmd = exec.Command("ffmpeg", "-y",
-			"-i", "-",
-			"-c:v", "libx264",
-			"-preset:v", "ultrafast",
-			"-tune", "zerolatency",
-			"-c:a", "aac",
-			"-ar", "44100",
-			"-b:v", "2M",
+		cmd = exec.Command("ffmpeg",
+			"-i", "-", // 管道输入
+			"-c:v", "libx265",
+			"-c:a", "copy", //直接复制不重新编码
+			"-preset:v", "medium", //编码速度,影响视频质量
+			"-tune", "zerolatency", //视频类型,表示零延迟
+			"-b:v", "1500k", //码率比特率,每秒处理的字节数,默认200kb
 			"-async", "1",
-			"-filter:v", "fps=20",
-			"-use_wallclock_as_timestamps", "1",
-			"-bufsize", "10240",
-			"-g", "12",
-			"-rtsp_transport", "tcp",
-			"-f", "rtsp",
-			rtspURL,
-		)
+			"-r", "20", //帧率,视频中每秒图片帧数,默认25,低于输入可能会丢帧
+			"-use_wallclock_as_timestamps", "1", //用系统时间计时当成时间轴
+			"-bufsize", "10240", //设置码率控制缓冲区大小
+			"-g", "12", //图片组大小
+			"-rtsp_transport", "tcp", //rtsp传输协议
+			"-f", "rtsp", //文件格式
+			rtspURL)
 	}
 
 	cmd.Stderr = os.Stderr

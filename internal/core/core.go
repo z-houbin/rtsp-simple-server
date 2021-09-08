@@ -365,18 +365,17 @@ func (p *Core) createResources(initial bool) error {
 	}
 
 	if p.cameraWsServer == nil {
-		//TODO 本地端口动态配置
-		p.cameraWsServer = RunCameraWebSocketServer(8290, &FFHandler{
+		p.cameraWsServer = RunCameraWebSocketServer(*p.conf, &FFHandler{
 			connect: make(map[string]*ffProcessor),
 		})
 	}
 
 	if p.cpc2WsClient == nil {
 		cpcClient := &CPC2Client{
-			api: p.rtspServer,
+			api:      p.rtspServer,
+			rtspHost: p.conf.RtspPushAddress,
 		}
-		//TODO 本地端口动态配置
-		p.cpc2WsClient = newWsClient("ws://127.0.0.1:8289/rtsp-server/0000000000", cpcClient)
+		p.cpc2WsClient = newWsClient(p.conf.LiveWebSocketAddress, cpcClient)
 		cpcClient.ws = p.cpc2WsClient
 		p.rtspServer.cpc2Client = cpcClient
 		if err != nil {

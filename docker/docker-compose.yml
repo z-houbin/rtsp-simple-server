@@ -1,0 +1,16 @@
+version: '2'
+
+services:
+  rtsp-server:
+    image: swr.cn-east-2.myhuaweicloud.com/dzone/rtsp-simple-server:1.0.0
+    container_name: rtsp-server
+    network_mode: "host"
+    restart: unless-stopped
+    volumes:
+      - ./rtsp-simple-server.yml:/s/rtsp-simple-server.yml
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5g"
+    ports:
+      - "8554:8554"

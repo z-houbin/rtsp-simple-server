@@ -263,6 +263,15 @@ func (conf *Conf) CheckAndFillMissing() error {
 	if conf.ReadBufferCount == 0 {
 		conf.ReadBufferCount = 512
 	}
+	if conf.LiveWebSocketAddress == "" {
+		conf.LiveWebSocketAddress = "ws://127.0.0.1:8289/rtsp-server/0000000000"
+	}
+	if conf.CameraWebSocketPort == 0 {
+		conf.CameraWebSocketPort = 8290
+	}
+	if conf.RtspPushAddress == "" {
+		conf.RtspPushAddress = "127.0.0.1:8554"
+	}
 
 	if conf.ExternalAuthenticationURL != "" {
 		if !strings.HasPrefix(conf.ExternalAuthenticationURL, "http://") &&
