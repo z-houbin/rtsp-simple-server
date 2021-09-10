@@ -66,7 +66,6 @@ type hlsServer struct {
 	pathSourceReady chan *path
 	request         chan hlsMuxerRequest
 	muxerClose      chan *hlsMuxer
-	apiMuxersList   chan hlsServerAPIMuxersListReq
 }
 
 func newHLSServer(

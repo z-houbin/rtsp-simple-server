@@ -1,11 +1,15 @@
 package core
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/aler9/gortsplib"
 	"github.com/aler9/rtsp-simple-server/internal/logger"
 	"github.com/aler9/rtsp-simple-server/internal/util"
+	"log"
+	"os/exec"
+	"runtime"
 )
 
 type CPC2Client struct {
@@ -50,14 +54,25 @@ func (c *CPC2Client) OnSetup(ctx *gortsplib.ServerHandlerOnSetupCtx) {
 	c.play = true
 	c.logger.Log(logger.Info, "OnSetup %s %s", ctx.Path, util.TimeUtil{}.GetTimeStr())
 	// test
-	//go func() {
-	//	cmd := exec.Command("cmd","/c","ffplay rtsp://127.0.0.1:8554/f1f7caeed5269c71ba4adf24d6e4a65f")
-	//	err := cmd.Start()
-	//	if err != nil {
-	//		log.Fatalln(err)
-	//		return
-	//	}
-	//}()
+	if runtime.GOOS != "windows" {
+		return
+	}
+	go func() {
+		cmd := exec.Command("cmd", "/c", "ffplay -stats -infbuf  rtsp://127.0.0.1:8554/f1f7caeed5269c71ba4adf24d6e4a65f")
+		errPipe, _ := cmd.StderrPipe()
+		sc := bufio.NewScanner(errPipe)
+		go func() {
+			for sc.Scan() {
+				line := sc.Text()
+				c.logger.Log(logger.Info, "ffplay line %s %s", line, util.TimeUtil{}.GetTimeStr())
+			}
+		}()
+		err := cmd.Start()
+		if err != nil {
+			log.Fatalln(err)
+			return
+		}
+	}()
 }
 
 func (c CPC2Client) OnConnect(uuid string, rtspHost string) {

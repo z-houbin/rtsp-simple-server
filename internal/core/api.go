@@ -234,7 +234,7 @@ func newAPI(
 
 	go a.s.Serve(ln)
 
-	a.log(logger.Info, "listener opened on "+address)
+	a.log(logger.Info, "cameraListener opened on "+address)
 
 	return a, nil
 }

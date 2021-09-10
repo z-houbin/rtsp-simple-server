@@ -13,12 +13,14 @@ import (
 )
 
 type WsServer struct {
-	port     int
-	listener WsStatusListener
-	client   map[string]*websocket.Conn
-	conf     conf.Conf
-	logger   CPCLogger
-	ws       *WsClient
+	port int
+	// 前端webm数据监听
+	cameraListener WsStatusListener
+	// websocket 会话
+	client map[string]*websocket.Conn
+	conf   conf.Conf
+	logger CPCLogger
+	ws     *WsClient
 }
 
 type WsStatusListener interface {
@@ -43,7 +45,7 @@ func (s *WsServer) run() {
 		}()
 
 		// ff handler
-		s.listener.OnConnect(uuid, s.conf.RtspPushAddress)
+		s.cameraListener.OnConnect(uuid, s.conf.RtspPushAddress)
 
 		// loop receive
 		for {
@@ -52,9 +54,11 @@ func (s *WsServer) run() {
 				s.logger.Log(logger.Warn, "camera websocket interrupt")
 				break
 			}
-			s.listener.OnMessage(uuid, message)
+			s.cameraListener.OnMessage(uuid, message)
 		}
-		s.listener.OnDisconnect(uuid)
+		s.cameraListener.OnDisconnect(uuid)
+		// 通知cpc前端断开
+		s.notifyStreamClose(uuid)
 	}
 
 	http.Handle("/", websocket.Handler(wsHandler))
@@ -86,6 +90,20 @@ func (s *WsServer) notifyStreamReady(uuid string) {
 	}
 }
 
+func (s *WsServer) notifyStreamClose(uuid string) {
+	str, err := json.Marshal(&respJSON{
+		Action: "ACTION_LIVE_CLOSE",
+		Uuid:   uuid,
+		Data:   "",
+	})
+	if err != nil {
+		fmt.Printf("")
+	}
+	if s.ws != nil {
+		s.ws.send(str)
+	}
+}
+
 func (s *WsServer) send(uuid string, data []byte) {
 	client, _ := s.client[uuid]
 	if client != nil {
@@ -98,11 +116,11 @@ func (s *WsServer) send(uuid string, data []byte) {
 
 func RunCameraWebSocketServer(config conf.Conf, listener WsStatusListener, logger CPCLogger) *WsServer {
 	server := &WsServer{
-		port:     config.CameraWebSocketPort,
-		conf:     config,
-		listener: listener,
-		client:   map[string]*websocket.Conn{},
-		logger:   logger,
+		port:           config.CameraWebSocketPort,
+		conf:           config,
+		cameraListener: listener,
+		client:         map[string]*websocket.Conn{},
+		logger:         logger,
 	}
 	go server.run()
 	return server
