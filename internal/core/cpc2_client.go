@@ -4,12 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aler9/gortsplib"
+	"github.com/aler9/rtsp-simple-server/internal/logger"
+	"github.com/aler9/rtsp-simple-server/internal/util"
 )
 
 type CPC2Client struct {
 	api      CpcApi
 	ws       *WsClient
 	rtspHost string
+	logger   CPCLogger
+	play     bool
+}
+
+type CPCLogger interface {
+	Log(logger.Level, string, ...interface{})
 }
 
 type respJSON struct {
@@ -19,9 +27,9 @@ type respJSON struct {
 }
 
 func (c CPC2Client) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) {
-	fmt.Printf("OnAnnounce %s\n", ctx.Path)
-
-	if c.ws != nil {
+	c.logger.Log(logger.Info, "OnAnnounce %s %s", ctx.Path, util.TimeUtil{}.GetTimeStr())
+	// skip
+	if c.ws != nil && false {
 		url := ctx.Req.URL
 		str, err := json.Marshal(&respJSON{
 			Action: "ACTION_LIVE_READY",
@@ -33,6 +41,23 @@ func (c CPC2Client) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) {
 		}
 		c.ws.send([]byte(str))
 	}
+}
+
+func (c *CPC2Client) OnSetup(ctx *gortsplib.ServerHandlerOnSetupCtx) {
+	if c.play {
+		return
+	}
+	c.play = true
+	c.logger.Log(logger.Info, "OnSetup %s %s", ctx.Path, util.TimeUtil{}.GetTimeStr())
+	// test
+	//go func() {
+	//	cmd := exec.Command("cmd","/c","ffplay rtsp://127.0.0.1:8554/f1f7caeed5269c71ba4adf24d6e4a65f")
+	//	err := cmd.Start()
+	//	if err != nil {
+	//		log.Fatalln(err)
+	//		return
+	//	}
+	//}()
 }
 
 func (c CPC2Client) OnConnect(uuid string, rtspHost string) {

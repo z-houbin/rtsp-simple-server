@@ -1,7 +1,7 @@
 package core
 
 import (
-	"fmt"
+	"github.com/aler9/rtsp-simple-server/internal/logger"
 	"golang.org/x/net/websocket"
 	"log"
 	"time"
@@ -11,10 +11,11 @@ type WsClient struct {
 	url      string
 	ws       *websocket.Conn
 	listener WsStatusListener
+	logger   CPCLogger
 }
 
 func (w *WsClient) run() {
-	log.Println("connect cpc2 live ws...")
+	w.logger.Log(logger.Info, "connect cpc2 live ws...")
 	origin := "http://127.0.0.1/"
 	ws, err := websocket.Dial(w.url, "", origin)
 	if err != nil {
@@ -36,7 +37,7 @@ func (w *WsClient) run() {
 	for {
 		var message []byte
 		if err = websocket.Message.Receive(ws, &message); err != nil {
-			fmt.Println("ws client can't receive")
+			w.logger.Log(logger.Warn, "[%s] cpc ws client interrupt")
 			break
 		}
 		w.listener.OnMessage("", message)
@@ -48,10 +49,11 @@ func (w *WsClient) send(data []byte) {
 	}
 }
 
-func newWsClient(url string, listener WsStatusListener) *WsClient {
+func newWsClient(url string, listener WsStatusListener, cpcLogger CPCLogger) *WsClient {
 	client := &WsClient{
 		url:      url,
 		listener: listener,
+		logger:   cpcLogger,
 	}
 	go client.run()
 	return client

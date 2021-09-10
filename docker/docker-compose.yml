@@ -8,6 +8,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./rtsp-simple-server.yml:/s/rtsp-simple-server.yml
+      - ./cert.crt:/s/cert.crt
+      - ./cert.key:/s/cert.key
     logging:
       driver: "json-file"
       options:

@@ -367,16 +367,19 @@ func (p *Core) createResources(initial bool) error {
 	if p.cameraWsServer == nil {
 		p.cameraWsServer = RunCameraWebSocketServer(*p.conf, &FFHandler{
 			connect: make(map[string]*ffProcessor),
-		})
+			logger:  p.logger,
+		}, p.logger)
 	}
 
 	if p.cpc2WsClient == nil {
 		cpcClient := &CPC2Client{
 			api:      p.rtspServer,
 			rtspHost: p.conf.RtspPushAddress,
+			logger:   p.logger,
 		}
-		p.cpc2WsClient = newWsClient(p.conf.LiveWebSocketAddress, cpcClient)
+		p.cpc2WsClient = newWsClient(p.conf.LiveWebSocketAddress, cpcClient, p.logger)
 		cpcClient.ws = p.cpc2WsClient
+		p.cameraWsServer.ws = p.cpc2WsClient
 		p.rtspServer.cpc2Client = cpcClient
 		if err != nil {
 			return err

@@ -375,6 +375,9 @@ func (s *rtspServer) OnSetup(ctx *gortsplib.ServerHandlerOnSetupCtx) (*base.Resp
 	c := s.conns[ctx.Conn]
 	se := s.sessions[ctx.Session]
 	s.mutex.RUnlock()
+	if s.cpc2Client != nil {
+		s.cpc2Client.onSetup(c,ctx)
+	}
 	return se.onSetup(c, ctx)
 }
 
