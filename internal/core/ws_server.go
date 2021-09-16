@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/websocket"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -25,7 +26,7 @@ type WsServer struct {
 
 type WsStatusListener interface {
 	//OnConnect 客户端连接
-	OnConnect(uuid string, rtspHost string)
+	OnConnect(uuid string, kind string, dest string)
 	//OnMessage 客户端消息
 	OnMessage(uuid string, data []byte)
 	//OnDisconnect 客户端断开
@@ -35,17 +36,33 @@ type WsStatusListener interface {
 func (s *WsServer) run() {
 	wsHandler := func(ws *websocket.Conn) {
 		var err error
+		var uuid, kind, dest string
+
+		// get uuid/dest params
+		re := regexp.MustCompile(`^/(\w+)/(\w+)/(.*)$`)
+		url := ws.Request().URL.String()
+		match := re.FindStringSubmatch(url)
+
+		if match != nil {
+			uuid = match[1]
+			kind = match[2]
+			dest = "rtsp://" + match[3]
+		} else {
+			uuid = strings.ReplaceAll(url, "/", "")
+			kind = "default"
+			dest = "rtsp://" + s.conf.RtspPushAddress + "/" + uuid
+		}
+
 		// get uuid params
-		uuid := strings.ReplaceAll(ws.Request().URL.String(), "/", "")
 		s.client[uuid] = ws
 
 		// notify android client
 		go func() {
-			s.notifyStreamReady(uuid)
+			s.notifyStreamReady(uuid, dest)
 		}()
 
 		// ff handler
-		s.cameraListener.OnConnect(uuid, s.conf.RtspPushAddress)
+		s.cameraListener.OnConnect(uuid, kind, dest)
 
 		// loop receive
 		for {
@@ -76,11 +93,11 @@ func (s *WsServer) run() {
 	}
 }
 
-func (s *WsServer) notifyStreamReady(uuid string) {
+func (s *WsServer) notifyStreamReady(uuid string, dest string) {
 	str, err := json.Marshal(&respJSON{
 		Action: "ACTION_LIVE_READY",
 		Uuid:   uuid,
-		Data:   "rtsp://" + s.conf.RtspPushAddress + "/" + uuid,
+		Data:   dest,
 	})
 	if err != nil {
 		fmt.Printf("")

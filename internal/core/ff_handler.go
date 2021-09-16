@@ -17,13 +17,13 @@ type FFHandler struct {
 }
 
 //OnConnect imp WsStatusListener
-func (h *FFHandler) OnConnect(uuid string, rtspHost string) {
+func (h *FFHandler) OnConnect(uuid string, kind string, dest string) {
 	h.logger.Log(logger.Info, "ff.connect %s %s", uuid, util.TimeUtil{}.GetTimeStr())
 	processor := &ffProcessor{
 		uuid:   uuid,
 		logger: h.logger,
 	}
-	processor.init(uuid, rtspHost)
+	processor.init(uuid, kind, dest)
 	h.connect[uuid] = processor
 }
 
@@ -54,53 +54,46 @@ type ffProcessor struct {
 	logger      CPCLogger
 }
 
-func (p *ffProcessor) init(uuid string, rtspHost string) {
+func (p *ffProcessor) init(uuid string, kind string, dest string) {
 	p.logger.Log(logger.Info, "ff.init %s %s", uuid, util.TimeUtil{}.GetTimeStr())
 
-	sysType := runtime.GOOS
-	var rtspURL = "rtsp://" + rtspHost + "/" + uuid
-	var cmd *exec.Cmd
-	if sysType == "windows" {
-		// windows
-		// 全局参数 - 输入文件参数 - 输入文件 - 输出文件参数 - 输出文件
-		cmd = exec.Command("cmd", "/c",
-			"ffmpeg",
-			"-f", "webm",
-			"-analyzeduration", "1000",
-			"-i", "-", // 管道输入
-			//"-c:v", "h264",
-			//"-c:a", "opus",
-			"-preset:v", "ultrafast", //编码速度,影响视频质量 ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placedo
-			"-tune", "zerolatency", //视频类型,表示零延迟
-			"-b:v", "800k", //码率比特率,每秒处理的字节数,默认200kb
-			"-async", "1",
-			"-r", "15", //帧率,视频中每秒图片帧数,默认25,低于输入可能会丢帧
-			"-use_wallclock_as_timestamps", "1", //用系统时间计时当成时间轴
-			//"-bufsize", "10240", //设置码率控制缓冲区大小
-			"-g", "12", //图片组大小
-			"-rtsp_transport", "tcp", //rtsp传输协议
-			"-f", "rtsp", //文件格式
-			rtspURL)
+	var cmdName string
+	var cmdArgs []string
+
+	if runtime.GOOS == "windows" {
+		cmdName = "cmd"
+		cmdArgs = append(cmdArgs, "/c", "ffmpeg")
 	} else {
-		cmd = exec.Command("ffmpeg",
-			"-f", "webm",
-			"-analyzeduration", "1000",
-			"-i", "-", // 管道输入
-			//"-c:v", "h264",
-			//"-c:a", "opus",
-			"-preset:v", "ultrafast", //编码速度,影响视频质量 ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placedo
-			"-tune", "zerolatency", //视频类型,表示零延迟
-			"-b:v", "800k", //码率比特率,每秒处理的字节数,默认200kb
-			"-async", "1",
-			"-r", "15", //帧率,视频中每秒图片帧数,默认25,低于输入可能会丢帧
-			"-use_wallclock_as_timestamps", "1", //用系统时间计时当成时间轴
-			//"-bufsize", "10240", //设置码率控制缓冲区大小
-			"-g", "12", //图片组大小
-			"-rtsp_transport", "tcp", //rtsp传输协议
-			"-f", "rtsp", //文件格式
-			rtspURL)
+		cmdName = "ffmpeg"
 	}
 
+	cmdArgs = append(cmdArgs,
+		"-hide_banner",
+		"-f", "webm",
+		"-analyzeduration", "1000",
+		"-i", "-", // 管道输入
+		//"-c:v", "h264",
+		//"-c:a", "opus",
+		"-preset:v", "ultrafast", //编码速度,影响视频质量 ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placedo
+		"-tune", "zerolatency", //视频类型,表示零延迟
+		"-b:v", "800k", //码率比特率,每秒处理的字节数,默认200kb
+		"-async", "1",
+		"-r", "15", //帧率,视频中每秒图片帧数,默认25,低于输入可能会丢帧
+		"-use_wallclock_as_timestamps", "1", //用系统时间计时当成时间轴
+		//"-bufsize", "10240", //设置码率控制缓冲区大小
+		"-g", "12", //图片组大小
+		)
+
+	if kind == "aliyun" {
+		cmdArgs = append(cmdArgs,"-vf", "crop=9/16*in_h:in_h,transpose=2")
+	}
+
+	cmdArgs = append(cmdArgs,
+		"-rtsp_transport", "tcp", //rtsp传输协议
+		"-f", "rtsp", //文件格式
+		dest)
+
+	cmd := exec.Command(cmdName, cmdArgs...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 
