@@ -39,7 +39,7 @@ func (s *WsServer) run() {
 		var uuid, kind, dest string
 
 		// get uuid/dest params
-		re := regexp.MustCompile(`^/(\w+)/(\w+)/(.*)$`)
+		re := regexp.MustCompile(`^/([^/]+)/([^/]+)/(.*)$`)
 		url := ws.Request().URL.String()
 		match := re.FindStringSubmatch(url)
 
