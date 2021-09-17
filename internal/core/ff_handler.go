@@ -85,7 +85,7 @@ func (p *ffProcessor) init(uuid string, kind string, dest string) {
 		)
 
 	if kind == "aliyun" {
-		cmdArgs = append(cmdArgs,"-vf", "crop=9/16*in_h:in_h,transpose=2")
+		cmdArgs = append(cmdArgs,"-vf", "crop=9/16*in_h:in_h,transpose=0")
 	}
 
 	cmdArgs = append(cmdArgs,
