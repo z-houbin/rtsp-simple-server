@@ -76,22 +76,24 @@ func (p *ffProcessor) init(uuid string, kind string, dest string) {
 		//"-c:a", "opus",
 		"-preset:v", "ultrafast", //编码速度,影响视频质量 ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placedo
 		"-tune", "zerolatency", //视频类型,表示零延迟
-		"-b:v", "800k", //码率比特率,每秒处理的字节数,默认200kb
+		"-b:v", "400k", //码率比特率,每秒处理的字节数,默认200kb
 		"-async", "1",
 		"-r", "15", //帧率,视频中每秒图片帧数,默认25,低于输入可能会丢帧
 		"-use_wallclock_as_timestamps", "1", //用系统时间计时当成时间轴
 		//"-bufsize", "10240", //设置码率控制缓冲区大小
 		"-g", "12", //图片组大小
-		)
+	)
 
 	if kind == "aliyun" {
-		cmdArgs = append(cmdArgs,"-vf", "crop=9/16*in_h:in_h,transpose=2")
+		cmdArgs = append(cmdArgs, "-vf", "crop=9/16*in_h:in_h,transpose=2")
 	}
 
 	cmdArgs = append(cmdArgs,
 		"-rtsp_transport", "tcp", //rtsp传输协议
 		"-f", "rtsp", //文件格式
 		dest)
+
+	p.logger.Log(logger.Info, "ff.processor.command %s %s", cmdArgs)
 
 	cmd := exec.Command(cmdName, cmdArgs...)
 	cmd.Stderr = os.Stderr
