@@ -17,13 +17,13 @@ type FFHandler struct {
 }
 
 //OnConnect imp WsStatusListener
-func (h *FFHandler) OnConnect(uuid string, kind string, dest string) {
+func (h *FFHandler) OnConnect(uuid string, kind string, dest string, bitRate string) {
 	h.logger.Log(logger.Info, "ff.connect %s %s", uuid, util.TimeUtil{}.GetTimeStr())
 	processor := &ffProcessor{
 		uuid:   uuid,
 		logger: h.logger,
 	}
-	processor.init(uuid, kind, dest)
+	processor.init(uuid, kind, dest, bitRate)
 	h.connect[uuid] = processor
 }
 
@@ -54,7 +54,7 @@ type ffProcessor struct {
 	logger      CPCLogger
 }
 
-func (p *ffProcessor) init(uuid string, kind string, dest string) {
+func (p *ffProcessor) init(uuid string, kind string, dest string, bitRate string) {
 	p.logger.Log(logger.Info, "ff.init %s %s", uuid, util.TimeUtil{}.GetTimeStr())
 
 	var cmdName string
@@ -74,9 +74,9 @@ func (p *ffProcessor) init(uuid string, kind string, dest string) {
 		"-i", "-", // 管道输入
 		//"-c:v", "h264",
 		//"-c:a", "opus",
-		"-preset:v", "ultrafast", //编码速度,影响视频质量 ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placedo
+		"-preset:v", "fast", //编码速度,影响视频质量 ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placedo
 		"-tune", "zerolatency", //视频类型,表示零延迟
-		"-b:v", "400k", //码率比特率,每秒处理的字节数,默认200kb
+		"-b:v", bitRate, //码率比特率,每秒处理的字节数,默认200kb
 		"-async", "1",
 		"-r", "15", //帧率,视频中每秒图片帧数,默认25,低于输入可能会丢帧
 		"-use_wallclock_as_timestamps", "1", //用系统时间计时当成时间轴

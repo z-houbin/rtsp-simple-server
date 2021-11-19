@@ -75,7 +75,7 @@ func (c *CPC2Client) OnSetup(ctx *gortsplib.ServerHandlerOnSetupCtx) {
 	}()
 }
 
-func (c CPC2Client) OnConnect(uuid string, kind string, dest string) {
+func (c CPC2Client) OnConnect(uuid string, kind string, dest string, birRate string) {
 	fmt.Printf("cpc2.OnConnect %s\n", uuid)
 }
 

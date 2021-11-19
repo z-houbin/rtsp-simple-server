@@ -3,3 +3,4 @@
 /coverage*.txt
 /apidocs/*.html
 /.idea
+/rtsp-simple-server

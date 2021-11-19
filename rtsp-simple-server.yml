@@ -22,6 +22,9 @@ liveWebSocketAddress: ws://127.0.0.1:8289/rtsp-server/0000000000
 cameraWebSocketPort: 8290
 # rtsp push stream address
 rtspPushAddress: 127.0.0.1:8554
+# rtsp bit rate
+rtspBitRate: 800k
+# enable the HTTP API.
 
 # HTTP URL to perform external authentication.
 # Every time a user wants to authenticate, the server calls this URL

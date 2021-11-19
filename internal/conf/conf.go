@@ -272,6 +272,9 @@ func (conf *Conf) CheckAndFillMissing() error {
 	if conf.RtspPushAddress == "" {
 		conf.RtspPushAddress = "127.0.0.1:8554"
 	}
+	if conf.RtspBitRate == "" {
+		conf.RtspBitRate = "200k"
+	}
 
 	if conf.ExternalAuthenticationURL != "" {
 		if !strings.HasPrefix(conf.ExternalAuthenticationURL, "http://") &&
