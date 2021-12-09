@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 )
 
 type FFHandler struct {
@@ -17,13 +18,13 @@ type FFHandler struct {
 }
 
 //OnConnect imp WsStatusListener
-func (h *FFHandler) OnConnect(uuid string, kind string, dest string, bitRate string) {
+func (h *FFHandler) OnConnect(uuid string, kind string, dest string, ffmpegArgs string) {
 	h.logger.Log(logger.Info, "ff.connect %s %s", uuid, util.TimeUtil{}.GetTimeStr())
 	processor := &ffProcessor{
 		uuid:   uuid,
 		logger: h.logger,
 	}
-	processor.init(uuid, kind, dest, bitRate)
+	processor.init(uuid, kind, dest, ffmpegArgs)
 	h.connect[uuid] = processor
 }
 
@@ -54,7 +55,7 @@ type ffProcessor struct {
 	logger      CPCLogger
 }
 
-func (p *ffProcessor) init(uuid string, kind string, dest string, bitRate string) {
+func (p *ffProcessor) init(uuid string, kind string, dest string, ffmpegArgs string) {
 	p.logger.Log(logger.Info, "ff.init %s %s", uuid, util.TimeUtil{}.GetTimeStr())
 
 	var cmdName string
@@ -67,22 +68,26 @@ func (p *ffProcessor) init(uuid string, kind string, dest string, bitRate string
 		cmdName = "ffmpeg"
 	}
 
-	cmdArgs = append(cmdArgs,
-		"-hide_banner",
-		"-f", "webm",
-		"-analyzeduration", "1000",
-		"-i", "-", // 管道输入
-		//"-c:v", "h264",
-		//"-c:a", "opus",
-		"-preset:v", "fast", //编码速度,影响视频质量 ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placedo
-		"-tune", "zerolatency", //视频类型,表示零延迟
-		"-b:v", bitRate, //码率比特率,每秒处理的字节数,默认200kb
-		"-async", "1",
-		"-r", "15", //帧率,视频中每秒图片帧数,默认25,低于输入可能会丢帧
-		"-use_wallclock_as_timestamps", "1", //用系统时间计时当成时间轴
-		//"-bufsize", "10240", //设置码率控制缓冲区大小
-		"-g", "12", //图片组大小
-	)
+	if ffmpegArgs == "" {
+		cmdArgs = append(cmdArgs,
+			"-hide_banner",
+			"-f", "webm",
+			"-analyzeduration", "1000",
+			"-i", "-", // 管道输入
+			//"-c:v", "h264",
+			//"-c:a", "opus",
+			"-preset:v", "fast", //编码速度,影响视频质量 ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow, placedo
+			"-tune", "zerolatency", //视频类型,表示零延迟
+			"-b:v", "800k", //码率比特率,每秒处理的字节数,默认200kb
+			"-async", "1",
+			"-r", "15", //帧率,视频中每秒图片帧数,默认25,低于输入可能会丢帧
+			"-use_wallclock_as_timestamps", "1", //用系统时间计时当成时间轴
+			//"-bufsize", "10240", //设置码率控制缓冲区大小
+			"-g", "12", //图片组大小
+		)
+	} else {
+		cmdArgs = append(cmdArgs, strings.Split(ffmpegArgs, " ")...)
+	}
 
 	if kind == "aliyun" {
 		cmdArgs = append(cmdArgs, "-vf", "crop=9/16*in_h:in_h,transpose=2")

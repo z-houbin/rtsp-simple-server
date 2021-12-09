@@ -26,7 +26,7 @@ type WsServer struct {
 
 type WsStatusListener interface {
 	//OnConnect 客户端连接
-	OnConnect(uuid string, kind string, dest string, bitRate string)
+	OnConnect(uuid string, kind string, dest string, ffmpegArgs string)
 	//OnMessage 客户端消息
 	OnMessage(uuid string, data []byte)
 	//OnDisconnect 客户端断开
@@ -62,7 +62,7 @@ func (s *WsServer) run() {
 		}()
 
 		// ff handler
-		s.cameraListener.OnConnect(uuid, kind, dest, s.conf.RtspBitRate)
+		s.cameraListener.OnConnect(uuid, kind, dest, s.conf.FfmpegArgs)
 
 		// loop receive
 		for {
