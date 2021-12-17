@@ -34,6 +34,8 @@ func (w *WsClient) run() {
 		}
 	}()
 
+	w.logger.Log(logger.Info, "connect cpc2 live ws success")
+
 	for {
 		var message []byte
 		if err = websocket.Message.Receive(ws, &message); err != nil {
@@ -42,6 +44,8 @@ func (w *WsClient) run() {
 		}
 		w.listener.OnMessage("", message)
 	}
+
+	w.logger.Log(logger.Info, "connect cpc2 live ws disconnected")
 }
 func (w *WsClient) send(data []byte) {
 	if _, err := w.ws.Write(data); err != nil {
