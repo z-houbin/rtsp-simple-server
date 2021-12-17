@@ -5,19 +5,18 @@ import (
 	"fmt"
 	"github.com/aler9/rtsp-simple-server/internal/conf"
 	"github.com/aler9/rtsp-simple-server/internal/logger"
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
 	"net/http"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 )
 
 type WsServer struct {
 	port int
-	// 前端webm数据监听
+	//前端webm数据监听
 	cameraListener WsStatusListener
-	// websocket 会话
+	//websocket      会话
 	client map[string]*websocket.Conn
 	conf   conf.Conf
 	logger CPCLogger
@@ -33,56 +32,67 @@ type WsStatusListener interface {
 	OnDisconnect(uuid string)
 }
 
+var upGrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	//解决跨域问题
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
 func (s *WsServer) run() {
-	wsHandler := func(ws *websocket.Conn) {
-		var err error
-		var uuid, kind, dest string
+	s.logger.Log(logger.Info, "ws 1")
 
-		// get uuid/dest params
-		re := regexp.MustCompile(`^/([^/]+)/([^/]+)/(.*)$`)
-		url := ws.Request().URL.String()
-		match := re.FindStringSubmatch(url)
+	wsHandler := func(w http.ResponseWriter, r *http.Request) {
+		s.logger.Log(logger.Info, "ws 4")
 
-		if match != nil {
-			uuid = match[1]
-			kind = match[2]
-			dest = "rtsp://" + match[3]
-		} else {
-			uuid = strings.ReplaceAll(url, "/", "")
-			kind = "default"
-			dest = "rtsp://" + s.conf.RtspPushAddress + "/" + uuid
+		uuid := strings.Split(r.URL.Path, "/")[1]
+		kind := "default"
+		dest := "rtsp:" + s.conf.RtspPushAddress + "/" + uuid
+		conn, err := upGrader.Upgrade(w, r, nil)
+		if err != nil {
+			s.logger.Log(logger.Info, "upgrade failed", err.Error())
+			return
 		}
 
-		// get uuid params
-		s.client[uuid] = ws
+		//get uuid params
+		s.client[uuid] = conn
 
 		// notify android client
 		go func() {
+			s.logger.Log(logger.Info, "ws 5")
 			s.notifyStreamReady(uuid, dest)
 		}()
 
-		// ff handler
+		//ff handler
 		s.cameraListener.OnConnect(uuid, kind, dest, s.conf.FfmpegArgs)
-
-		// loop receive
+		defer func(conn *websocket.Conn) {
+			err := conn.Close()
+			if err != nil {
+				s.logger.Log(logger.Warn, err.Error())
+			}
+		}(conn)
 		for {
-			var message []byte
-			if err = websocket.Message.Receive(ws, &message); err != nil {
-				s.logger.Log(logger.Warn, "camera websocket interrupt")
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				s.logger.Log(logger.Warn, err.Error())
 				break
 			}
 			s.cameraListener.OnMessage(uuid, message)
 		}
+		s.logger.Log(logger.Info, "ws 6")
 		s.cameraListener.OnDisconnect(uuid)
 		// 通知cpc前端断开
 		s.notifyStreamClose(uuid)
 	}
 
-	http.Handle("/", websocket.Handler(wsHandler))
+	http.HandleFunc("/", wsHandler)
+	s.logger.Log(logger.Info, "ws 2")
 
 	_, err := os.Lstat("./cert.crt")
 	if !os.IsNotExist(err) {
-		// wss://
+		// wss:
 		if err := http.ListenAndServeTLS(":"+strconv.Itoa(s.port), "cert.crt", "cert.key", nil); err != nil {
 			s.logger.Log(logger.Warn, "camera websocket listen err %s", err)
 		}
@@ -91,6 +101,7 @@ func (s *WsServer) run() {
 			s.logger.Log(logger.Warn, "camera websocket listen err %s", err)
 		}
 	}
+	s.logger.Log(logger.Info, "ws 3")
 }
 
 func (s *WsServer) notifyStreamReady(uuid string, dest string) {
@@ -124,7 +135,7 @@ func (s *WsServer) notifyStreamClose(uuid string) {
 func (s *WsServer) send(uuid string, data []byte) {
 	client, _ := s.client[uuid]
 	if client != nil {
-		err := websocket.Message.Send(client, data)
+		err := client.WriteMessage(websocket.BinaryMessage, data)
 		if err != nil {
 			s.logger.Log(logger.Warn, "camera websocket send err %s %s", uuid, err)
 		}
