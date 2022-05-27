@@ -10,6 +10,8 @@ import (
 	gopath "path"
 	"strings"
 	"sync"
+	"crypto/tls"
+	"compress/gzip"
 
 	"github.com/gin-gonic/gin"
 
@@ -63,6 +65,7 @@ type hlsServer struct {
 	ctxCancel func()
 	wg        sync.WaitGroup
 	ln        net.Listener
+	tlsConfig *tls.Config
 	muxers    map[string]*hlsMuxer
 
 	// in
@@ -83,6 +86,9 @@ func newHLSServer(
 	hlsPartDuration conf.StringDuration,
 	hlsSegmentMaxSize conf.StringSize,
 	hlsAllowOrigin string,
+	hlsEncryption bool,
+	hlsServerKey string,
+	hlsServerCert string,
 	readBufferCount int,
 	pathManager *pathManager,
 	metrics *metrics,
@@ -91,6 +97,19 @@ func newHLSServer(
 	ln, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, err
+	}
+
+	var tlsConfig *tls.Config
+	if hlsEncryption {
+		crt, err := tls.LoadX509KeyPair(hlsServerCert, hlsServerKey)
+		if err != nil {
+			ln.Close()
+			return nil, err
+		}
+
+		tlsConfig = &tls.Config{
+			Certificates: []tls.Certificate{crt},
+		}
 	}
 
 	ctx, ctxCancel := context.WithCancel(parentCtx)
@@ -111,6 +130,7 @@ func newHLSServer(
 		ctx:                       ctx,
 		ctxCancel:                 ctxCancel,
 		ln:                        ln,
+		tlsConfig:                 tlsConfig,
 		muxers:                    make(map[string]*hlsMuxer),
 		pathSourceReady:           make(chan *path),
 		request:                   make(chan hlsMuxerRequest),
@@ -149,8 +169,16 @@ func (s *hlsServer) run() {
 	router := gin.New()
 	router.NoRoute(s.onRequest)
 
-	hs := &http.Server{Handler: router}
-	go hs.Serve(s.ln)
+	hs := &http.Server{
+		Handler:   router,
+		TLSConfig: s.tlsConfig,
+	}
+
+	if s.tlsConfig != nil {
+		go hs.ServeTLS(s.ln, "", "")
+	} else {
+		go hs.Serve(s.ln)
+	}
 
 outer:
 	for {
@@ -268,10 +296,22 @@ func (s *hlsServer) onRequest(ctx *gin.Context) {
 			ctx.Writer.Header().Set(k, v)
 		}
 
+		if res.Header["Content-Type"] == "application/x-mpegURL" {
+			ctx.Writer.Header().Set("Content-Encoding", "gzip")
+		}
+
+		ctx.Writer.Header().Set("Age", "0")
+
 		ctx.Writer.WriteHeader(res.Status)
 
 		if res.Body != nil {
-			io.Copy(ctx.Writer, res.Body)
+			if res.Header["Content-Type"] == "application/x-mpegURL" {
+				gz := gzip.NewWriter(ctx.Writer)
+				defer gz.Close()
+				io.Copy(gz, res.Body)
+			} else {
+				io.Copy(ctx.Writer, res.Body)
+			}
 		}
 
 	case <-s.ctx.Done():

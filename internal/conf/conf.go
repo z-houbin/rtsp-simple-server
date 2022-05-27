@@ -213,6 +213,9 @@ type Conf struct {
 	HLSPartDuration    StringDuration `json:"hlsPartDuration"`
 	HLSSegmentMaxSize  StringSize     `json:"hlsSegmentMaxSize"`
 	HLSAllowOrigin     string         `json:"hlsAllowOrigin"`
+	HLSEncryption      bool           `json:"hlsEncryption"`
+	HLSServerKey       string         `json:"hlsServerKey"`
+	HLSServerCert      string         `json:"hlsServerCert"`
 
 	// paths
 	Paths map[string]*PathConf `json:"paths"`
@@ -369,6 +372,14 @@ func (conf *Conf) CheckAndFillMissing() error {
 
 	if conf.HLSAllowOrigin == "" {
 		conf.HLSAllowOrigin = "*"
+	}
+
+	if conf.HLSServerKey == "" {
+		conf.HLSServerKey = "server.key"
+	}
+
+	if conf.HLSServerCert == "" {
+		conf.HLSServerCert = "server.crt"
 	}
 
 	// do not add automatically "all", since user may want to

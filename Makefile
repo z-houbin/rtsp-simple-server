@@ -126,6 +126,10 @@ define CONFIG_RUN
 hlsVariant: lowLatency
 hlsAlwaysRemux: yes
 hlsPartDuration: 500ms
+hlsSegmentDuration: 3s
+hlsEncryption: yes
+hlsServerKey: /s/server.key
+hlsServerCert: /s/server.crt
 
 paths:
   all:
