@@ -34,7 +34,7 @@ func (c CPC2Client) OnAnnounce(ctx *gortsplib.ServerHandlerOnAnnounceCtx) {
 	c.logger.Log(logger.Info, "OnAnnounce %s %s", ctx.Path, util.TimeUtil{}.GetTimeStr())
 	// skip
 	if c.ws != nil && false {
-		url := ctx.Req.URL
+		url := ctx.Request.URL
 		str, err := json.Marshal(&respJSON{
 			Action: "ACTION_LIVE_READY",
 			Uuid:   ctx.Path,

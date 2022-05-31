@@ -38,6 +38,8 @@ type Core struct {
 	hlsServer       *hlsServer
 	api             *api
 	confWatcher     *confwatcher.ConfWatcher
+	cameraWsServer  *WsServer
+	cpc2WsClient    *WsClient
 
 	// in
 	apiConfigSet chan *conf.Conf

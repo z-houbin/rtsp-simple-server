@@ -17,10 +17,10 @@ writeTimeout: 10s
 # A higher number allows a wider throughput, a lower number allows to save RAM.
 readBufferCount: 512
 # cpc2 live socket
-liveWebSocketAddress: ws://124.70.138.87:8289/rtsp-server/0000000000
+liveWebSocketAddress: ws://127.0.0.1:8289/rtsp-server/0000000000
 # web camera push port
 cameraWebSocketPort: 8290
-# rtsp push stream address
+# rtsp push stream address, ensure mobile and rtsp-server can accessible
 rtspPushAddress: 192.168.43.237:8554
 # rtsp bit rate
 rtspBitRate: 800k

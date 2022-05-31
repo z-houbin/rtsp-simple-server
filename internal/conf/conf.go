@@ -214,6 +214,12 @@ type Conf struct {
 
 	// paths
 	Paths map[string]*PathConf `json:"paths"`
+
+	LiveWebSocketAddress string `yaml:"liveWebSocketAddress" json:"liveWebSocketAddress"`
+	CameraWebSocketPort  int    `yaml:"cameraWebSocketPort" json:"cameraWebSocketPort"`
+	RtspPushAddress      string `yaml:"rtspPushAddress" json:"rtspPushAddress"`
+	RtspBitRate          string `yaml:"rtspBitRate" json:"rtspBitRate"`
+	FfmpegArgs           string `yaml:"ffmpegArgs" json:"ffmpegArgs"`
 }
 
 // Load loads a Conf.

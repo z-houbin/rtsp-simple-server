@@ -107,7 +107,6 @@ func newHLSServer(
 		pathSourceReady:           make(chan *path),
 		request:                   make(chan hlsMuxerRequest),
 		muxerClose:                make(chan *hlsMuxer),
-		apiMuxersList:             make(chan hlsServerAPIMuxersListReq),
 	}
 
 	s.log(logger.Info, "listener opened on "+address)
@@ -161,18 +160,6 @@ outer:
 				continue
 			}
 			delete(s.muxers, c.PathName())
-
-		case req := <-s.apiMuxersList:
-			muxers := make(map[string]*hlsMuxer)
-
-			for name, m := range s.muxers {
-				muxers[name] = m
-			}
-
-			req.res <- hlsServerAPIMuxersListRes{
-				muxers: muxers,
-			}
-
 		case <-s.ctx.Done():
 			break outer
 		}
@@ -308,19 +295,6 @@ func (s *hlsServer) onPathSourceReady(pa *path) {
 func (s *hlsServer) onAPIHLSMuxersList(req hlsServerAPIMuxersListReq) hlsServerAPIMuxersListRes {
 	req.res = make(chan hlsServerAPIMuxersListRes)
 	select {
-	case s.apiMuxersList <- req:
-		res := <-req.res
-
-		res.data = &hlsServerAPIMuxersListData{
-			Items: make(map[string]hlsServerAPIMuxersListItem),
-		}
-
-		for _, pa := range res.muxers {
-			pa.onAPIHLSMuxersList(hlsServerAPIMuxersListSubReq{data: res.data})
-		}
-
-		return res
-
 	case <-s.ctx.Done():
 		return hlsServerAPIMuxersListRes{err: fmt.Errorf("terminated")}
 	}
